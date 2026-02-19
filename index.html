@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mighty Master</title>
-    <script src="config.js"></script>
+    <script>
+        const CONFIG = { GAS_URL: "여기에_웹앱_URL을_붙여넣으세요" };
+    </script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -14,7 +16,6 @@
         [v-cloak] { display: none; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* 칩 아이콘 애니메이션 */
         .chip-change { animation: pop 0.3s ease-out forwards; }
         @keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     </style>
@@ -24,7 +25,7 @@
         
         <header class="bg-gray-900 text-white py-3 px-4 text-center shadow-md z-10 shrink-0 flex justify-between items-center">
             <h1 class="text-lg font-black italic tracking-tighter">MIGHTY MASTER</h1>
-            <button v-if="step > 2" @click="confirmReset" class="text-xs text-red-400 font-bold border border-red-400 px-2 py-1 rounded">게임 종료</button>
+            <button v-if="step > 2" @click="endGame" class="text-xs text-red-400 font-bold border border-red-400 px-2 py-1 rounded hover:bg-red-500 hover:text-white transition-colors">게임 종료</button>
         </header>
 
         <main class="flex-grow p-4 flex flex-col overflow-y-auto">
@@ -50,14 +51,6 @@
                     </div>
                     <span class="text-3xl">🃏</span>
                 </button>
-
-                <button @click="alert('통계 기능은 장부 데이터가 쌓인 후 오픈됩니다!')" class="menu-card w-full p-6 rounded-[1.5rem] bg-white shadow-sm flex items-center justify-between opacity-60">
-                    <div class="text-left">
-                        <h3 class="text-lg font-black text-gray-800">전적 통계</h3>
-                        <p class="text-xs text-gray-400">ELO 랭킹 및 승률 확인</p>
-                    </div>
-                    <span class="text-3xl">📊</span>
-                </button>
             </section>
 
             <section v-if="step === 2" class="flex flex-col h-full space-y-4">
@@ -71,8 +64,11 @@
                 <div class="grid grid-cols-2 gap-2 max-h-[40vh] overflow-y-auto p-1">
                     <button v-for="name in playerList" :key="name" 
                         @click="togglePlayer(name)"
-                        :class="['p-3 rounded-xl border-2 text-sm font-bold transition-all', 
+                        :class="['p-3 rounded-xl border-2 text-sm font-bold transition-all flex items-center justify-center gap-2', 
                                  selectedPlayers.includes(name) ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-100 bg-white text-gray-400']">
+                        <span v-if="selectedPlayers.includes(name)" class="text-xs bg-blue-600 text-white rounded-md px-1.5 py-0.5 font-black">
+                            {{ selectedPlayers.indexOf(name) + 1 }}
+                        </span>
                         {{ name }}
                     </button>
                 </div>
@@ -83,9 +79,9 @@
                 </div>
 
                 <div class="mt-auto pt-2 shrink-0 space-y-2">
-                    <button @click="startGame" :disabled="selectedPlayers.length < 5 || selectedPlayers.length > 6"
+                    <button @click="startGame" :disabled="selectedPlayers.length < 5 || selectedPlayers.length > 6 || loading"
                         class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-base shadow-lg disabled:bg-gray-200 transition-colors">
-                        {{ selectedPlayers.length === 6 ? '6인 (광팔이) 모드로 시작' : '5인 모드로 시작' }}
+                        {{ loading ? '세션 생성 중...' : (selectedPlayers.length === 6 ? '6인 (휴식 포함) 모드로 시작' : '5인 모드로 시작') }}
                     </button>
                     <button @click="step = 1" class="w-full py-3 text-gray-400 font-bold text-sm">취소</button>
                 </div>
@@ -93,7 +89,7 @@
 
             <section v-if="step === 3" class="flex flex-col h-full space-y-3 relative">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-lg font-black text-gray-800">비딩 & 스코어</h2>
+                    <h2 class="text-lg font-black text-gray-800">Round {{ roundCount }} 비딩</h2>
                 </div>
 
                 <div v-if="players.length === 6" class="bg-gray-100 rounded-xl p-2 flex justify-between items-center shrink-0 border border-gray-200">
@@ -157,7 +153,6 @@
             </section>
 
             <section v-if="step === 4" class="flex flex-col h-full space-y-4">
-                
                 <div class="bg-gray-900 p-5 rounded-3xl shadow-xl relative text-center shrink-0">
                     <div class="grid grid-cols-2 gap-3 relative z-10">
                         <div class="bg-white py-3 rounded-xl shadow-inner flex flex-col items-center justify-center">
@@ -202,8 +197,8 @@
 
                 <div class="flex gap-2 mt-auto shrink-0 pt-2">
                     <button @click="step = 3" class="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-bold text-sm">수정</button>
-                    <button @click="calculateResult" :disabled="!formData.friend" class="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-base active:scale-95 transition-transform disabled:bg-gray-300">
-                        정산하기
+                    <button @click="calculateResult" :disabled="!formData.friend || loading" class="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-base active:scale-95 transition-transform disabled:bg-gray-300">
+                        {{ loading ? '기록 저장 중...' : '정산 및 서버 저장' }}
                     </button>
                 </div>
             </section>
@@ -227,7 +222,7 @@
                         <div class="flex items-center gap-2">
                             <span class="font-black text-gray-800 text-base">{{ change.name }}</span>
                             <span v-if="change.role" class="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" 
-                                  :class="change.role === '주공' ? 'bg-blue-600' : (change.role === '프렌드' ? 'bg-blue-400' : 'bg-gray-400')">
+                                  :class="change.role.includes('주공') ? 'bg-blue-600' : (change.role === '프렌드' ? 'bg-blue-400' : 'bg-gray-400')">
                                 {{ change.role }}
                             </span>
                         </div>
@@ -255,11 +250,15 @@
             data() {
                 return {
                     step: 1,
-                    playerList: [], // 전체 DB 인원
-                    selectedPlayers: [], // 선택된 5~6명
-                    players: [], // {name, chips} 객체 배열 (세션 데이터)
-                    standbyPlayer: null, // 6마 시 현재 휴식 인원
+                    playerList: ['철수', '영희', '민수', '길동', '지훈', '태현'],
+                    selectedPlayers: [],
+                    players: [],
+                    standbyPlayer: null,
                     newPlayerName: '',
+                    loading: false,
+                    
+                    gameId: '',
+                    roundCount: 1,
                     
                     suits: [
                         { symbol: 'N', name: '노기루', textColor: 'text-gray-400', borderColor: 'border-gray-400' },
@@ -270,7 +269,7 @@
                     ],
                     bids: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
                     formData: { dealer: '', friend: '', suit: null, bid: null, oppScore: 0 },
-                    lastResult: {} // 정산 결과 화면용 데이터
+                    lastResult: {}
                 }
             },
             computed: {
@@ -296,20 +295,10 @@
                 }
             },
             methods: {
-                // 인원 선택 관련
                 togglePlayer(name) {
                     const idx = this.selectedPlayers.indexOf(name);
                     if (idx > -1) this.selectedPlayers.splice(idx, 1);
                     else if (this.selectedPlayers.length < 6) this.selectedPlayers.push(name);
-                },
-                async fetchPlayers() {
-                    try {
-                        // 실제 DB 연결 시 주석 해제 (지금은 로컬 테스트용 더미 데이터 삽입)
-                        // const res = await fetch(CONFIG.GAS_URL);
-                        // const data = await res.json();
-                        // this.playerList = data.players || [];
-                        this.playerList = ['철수', '영희', '민수', '길동', '지훈', '태현', '유리'];
-                    } catch (e) { console.error("데이터 로딩 실패"); }
                 },
                 addPlayer() {
                     if(!this.newPlayerName) return;
@@ -318,33 +307,63 @@
                     this.newPlayerName = '';
                 },
                 
-                // 세션 관리
-                startGame() {
+                // 1. 새 게임 시작 로직 (Games 시트 연동)
+                async startGame() {
+                    this.loading = true;
+                    // MIGHTY_년월일_랜덤문자
+                    const today = new Date().toISOString().slice(2,10).replace(/-/g, '');
+                    const randomStr = Math.random().toString(36).substr(2, 4).toUpperCase();
+                    this.gameId = `MIGHTY_${today}_${randomStr}`;
+                    this.roundCount = 1;
+
                     this.players = this.selectedPlayers.map(name => ({ name, chips: 40 }));
-                    if (this.players.length === 6) {
-                        this.standbyPlayer = this.players[5].name; // 마지막 1명 자동 휴식
-                    } else {
-                        this.standbyPlayer = null;
-                    }
+                    
+                    if (this.players.length === 6) this.standbyPlayer = this.players[5].name; 
+                    else this.standbyPlayer = null;
+
+                    try {
+                        const payload = { action: "startGame", gameId: this.gameId, players: this.players };
+                        await fetch(CONFIG.GAS_URL, {
+                            method: "POST", mode: "no-cors",
+                            headers: { "Content-Type": "text/plain" },
+                            body: JSON.stringify(payload)
+                        });
+                    } catch (e) { console.error("새 게임 DB 생성 실패 (오프라인 모드 유지)"); }
+
                     this.saveSession();
+                    this.loading = false;
                     this.step = 3;
                 },
+                
                 saveSession() {
                     const sessionData = {
-                        players: this.players,
-                        standbyPlayer: this.standbyPlayer
+                        gameId: this.gameId, roundCount: this.roundCount,
+                        players: this.players, standbyPlayer: this.standbyPlayer
                     };
                     localStorage.setItem('mightySession', JSON.stringify(sessionData));
                 },
                 loadSession() {
                     const data = JSON.parse(localStorage.getItem('mightySession'));
+                    this.gameId = data.gameId;
+                    this.roundCount = data.roundCount;
                     this.players = data.players;
                     this.standbyPlayer = data.standbyPlayer;
                     this.selectedPlayers = this.players.map(p => p.name);
                     this.step = 3;
                 },
-                confirmReset() {
-                    if(confirm("정말 게임을 종료하시겠습니까? 현재 칩 기록이 초기화됩니다.")) {
+
+                // 2. 게임 완전히 종료 (종료 상태 서버 전송)
+                async endGame() {
+                    if(confirm("정말 게임을 종료하시겠습니까? (서버에 종료 처리되며 초기화됩니다)")) {
+                        try {
+                            const payload = { action: "endGame", gameId: this.gameId };
+                            await fetch(CONFIG.GAS_URL, {
+                                method: "POST", mode: "no-cors",
+                                headers: { "Content-Type": "text/plain" },
+                                body: JSON.stringify(payload)
+                            });
+                        } catch (e) { console.error("DB 종료 업데이트 실패"); }
+
                         localStorage.removeItem('mightySession');
                         this.players = [];
                         this.selectedPlayers = [];
@@ -352,8 +371,10 @@
                     }
                 },
 
-                // 칩 정산 핵심 알고리즘
-                calculateResult() {
+                // 3. 라운드 정산 및 서버 업데이트
+                async calculateResult() {
+                    this.loading = true;
+
                     const { dealer, friend, suit, bid, oppScore } = this.formData;
                     const wonCards = 20 - oppScore;
                     const isWin = wonCards >= bid;
@@ -361,12 +382,10 @@
                     const isBackrun = (oppScore >= 10);
                     
                     let base = 0;
-                    
-                    // 1. Base 산정 (풀선언 및 런/백런 로직)
                     if (bid === 20) {
                         if (isWin) base = 20;
-                        else if (isBackrun) base = 20; // 풀선언 백런 고정 20
-                        else base = Math.ceil((bid - wonCards) * 1.5); // 소수점 올림
+                        else if (isBackrun) base = 20; 
+                        else base = Math.ceil((bid - wonCards) * 1.5); 
                     } else {
                         if (isWin) {
                             if (isRun) base = 15;
@@ -377,76 +396,80 @@
                         }
                     }
 
-                    // 2. 배수 적용
                     let multiplier = 1;
                     if (suit === '노기루') multiplier *= 2;
                     if (friend === '노프렌드') multiplier *= 2;
                     
                     const finalUnit = base * multiplier;
 
-                    // 3. 분배 계산
                     let changes = [];
                     const activeOpponents = this.activePlayers.filter(p => p.name !== dealer && p.name !== friend);
                     
-                    // 야당 정산 (1배수씩 잃거나 얻음)
                     const oppDiff = isWin ? -finalUnit : finalUnit;
-                    activeOpponents.forEach(p => {
-                        changes.push({ name: p.name, role: '야당', diff: oppDiff });
-                    });
+                    activeOpponents.forEach(p => { changes.push({ name: p.name, role: '야당', diff: oppDiff }); });
 
-                    // 여당 정산
                     if (friend === '노프렌드') {
-                        // 독식/독박 (야당 4명의 몫을 혼자 부담)
                         const dealerDiff = isWin ? (finalUnit * 4) : -(finalUnit * 4);
                         changes.push({ name: dealer, role: '주공(노프)', diff: dealerDiff });
                     } else {
-                        // 주공 2 : 프렌드 1
                         const friendDiff = isWin ? finalUnit : -finalUnit;
                         const dealerDiff = isWin ? (finalUnit * 2) : -(finalUnit * 2);
                         changes.push({ name: friend, role: '프렌드', diff: friendDiff });
                         changes.push({ name: dealer, role: '주공', diff: dealerDiff });
                     }
 
-                    // 4. 실제 칩 적용
+                    // 칩 적용
                     changes.forEach(c => {
                         const player = this.players.find(p => p.name === c.name);
                         player.chips += c.diff;
-                        c.newTotal = player.chips; // UI 표시용
+                        c.newTotal = player.chips; 
                     });
 
-                    // 결과 데이터 세팅
+                    // 칩 변동 기록을 텍스트로 합치기 (철수:+4, 영희:-2 형식)
+                    const changesLogStr = changes.map(c => `${c.name}:${c.diff > 0 ? '+' : ''}${c.diff}`).join(', ');
+
                     this.lastResult = { isWin, base, multiplier, finalUnit, changes };
                     
-                    this.saveSession(); // 변동된 칩 로컬 저장
+                    // GAS로 결과 전송
+                    try {
+                        const payload = {
+                            action: "recordRound",
+                            gameId: this.gameId,
+                            round: this.roundCount,
+                            dealer: dealer, friend: friend, suit: suit, bid: bid,
+                            oppScore: oppScore, result: isWin ? "승리" : "파액",
+                            changesLog: changesLogStr,
+                            players: this.players // 최신 칩 덮어쓰기용
+                        };
+                        await fetch(CONFIG.GAS_URL, {
+                            method: "POST", mode: "no-cors",
+                            headers: { "Content-Type": "text/plain" },
+                            body: JSON.stringify(payload)
+                        });
+                    } catch (e) { console.error("GAS 저장 실패"); }
+
+                    this.saveSession(); 
+                    this.loading = false;
                     this.step = 5;
                 },
 
-                // 다음 라운드 준비
                 nextRound() {
-                    // 오토 로테이션 (6마일 경우)
                     if (this.players.length === 6) {
                         if (this.lastResult.isWin) {
-                            // 승리시 프렌드가 다음 판 휴식 (노프렌드면 일단 주공 유지 또는 수동 변경)
                             if (this.formData.friend !== '노프렌드') this.standbyPlayer = this.formData.friend;
                         } else {
-                            // 패배시 주공이 다음 판 휴식
                             this.standbyPlayer = this.formData.dealer;
                         }
-                        this.saveSession();
                     }
 
-                    // 폼 초기화
-                    this.formData.dealer = '';
-                    this.formData.friend = '';
-                    this.formData.suit = null;
-                    this.formData.bid = null;
+                    this.formData.dealer = ''; this.formData.friend = '';
+                    this.formData.suit = null; this.formData.bid = null;
                     this.formData.oppScore = 0;
                     
+                    this.roundCount++;
+                    this.saveSession();
                     this.step = 3;
                 }
-            },
-            mounted() { 
-                this.fetchPlayers(); 
             }
         }).mount('#app')
     </script>
