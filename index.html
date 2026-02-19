@@ -45,7 +45,7 @@
             </section>
 
             <section v-if="step === 2" class="flex flex-col h-full space-y-4">
-                <div class="flex justify-between items-center pb-1 border-b mt-2">
+                <div class="flex justify-between items-center pb-1 border-b mt-2 shrink-0">
                     <h2 class="text-xl font-black text-gray-800">인원 선택 (5~6명)</h2>
                     <span :class="['font-black text-sm', selectedPlayers.length >= 5 && selectedPlayers.length <= 6 ? 'text-blue-600' : 'text-red-500']">{{ selectedPlayers.length }} 명</span>
                 </div>
@@ -61,7 +61,7 @@
                     <button @click="addPlayer" class="bg-white px-3 py-2 rounded-lg text-xs font-black shadow-sm">등록</button>
                 </div>
                 <button @click="startGame" :disabled="selectedPlayers.length < 5 || selectedPlayers.length > 6 || loading"
-                    class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-base shadow-lg disabled:bg-gray-200">
+                    class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-base shadow-lg disabled:bg-gray-200 shrink-0">
                     {{ loading ? '시작 중...' : (selectedPlayers.length === 6 ? '6마 시작' : '5마 시작') }}
                 </button>
             </section>
@@ -73,7 +73,7 @@
 
                 <div class="space-y-1.5 shrink-0 bg-blue-50 p-2.5 rounded-xl border border-blue-100">
                     <div class="flex justify-between items-center mb-1">
-                        <label class="text-[11px] font-black text-blue-600 uppercase ml-1">주공 선택</label>
+                        <label class="text-[11px] font-black text-blue-600 uppercase ml-1 tracking-widest">주공 선택</label>
                         <button v-if="players.length === 6" @click="showStandbyModal = true" class="text-[10px] bg-white border px-2 py-1 rounded font-bold shadow-sm">휴식 지정 ⚙️</button>
                     </div>
                     <div class="grid grid-cols-3 gap-1.5">
@@ -82,7 +82,7 @@
                             :class="['p-2 rounded-lg border-2 flex flex-col items-center justify-center transition-all relative',
                                 standbyPlayer === p.name ? 'border-gray-200 bg-gray-100 opacity-30' :
                                 formData.dealer === p.name ? 'border-blue-600 bg-white text-blue-700 shadow-md ring-1 ring-blue-100' : 'border-gray-200 bg-white text-gray-700 shadow-sm']">
-                            <span v-if="standbyPlayer === p.name" class="absolute top-1 left-1 bg-red-500 text-white text-[8px] font-black px-1 rounded">휴식</span>
+                            <span v-if="standbyPlayer === p.name" class="absolute top-1 left-1 bg-red-500 text-white text-[8px] font-black px-1 rounded shadow-sm">휴식</span>
                             <span class="text-xs font-black">{{ p.name }}</span>
                             <span class="text-[10px] font-bold opacity-50 mt-0.5">{{ p.chips }}</span>
                         </button>
@@ -97,16 +97,41 @@
                                 <button v-for="num in bids" :key="num" @click="formData.suit = s.name; formData.bid = num"
                                     :class="['w-9 h-9 rounded-full border-2 font-black text-sm transition-all flex shrink-0 items-center justify-center shadow-sm', 
                                     formData.suit === s.name && formData.bid === num ? 'bg-gray-800 text-white border-gray-800 scale-110' : 'bg-white border-gray-200 ' + s.textColor]">{{ num }}</button>
-                                <div class="w-4 shrink-0"></div> </div>
+                                <div class="w-4 shrink-0"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="shrink-0 pt-1 pb-1">
+                <div class="p-2.5 bg-white border border-gray-200 rounded-xl shadow-sm shrink-0">
+                    <div class="flex justify-between items-center mb-1 pb-1 border-b border-gray-100">
+                        <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">현재 비딩</span>
+                        <span v-if="formData.suit && formData.bid" class="text-base font-black text-blue-600">{{ formData.suit }} {{ formData.bid }}</span>
+                        <span v-else class="text-[11px] text-gray-300 font-bold">기루와 비딩을 선택하세요</span>
+                    </div>
+                    <div class="flex justify-between items-center px-1 pt-0.5">
+                        <p class="text-[10px] font-black text-gray-500">마이티 <span :class="['text-[11px] ml-1 font-black', calculateMighty.color]">{{ calculateMighty.text }}</span></p>
+                        <p class="text-[10px] font-black text-gray-500">조커 콜 <span class="text-[11px] ml-1 font-black text-gray-800">{{ calculateJokerCall.text }}</span></p>
+                    </div>
+                </div>
+
+                <div class="shrink-0 pt-0.5 pb-1">
                     <button @click="step = 4" :disabled="!isBiddingComplete" 
                         :class="['w-full py-4 rounded-2xl font-black text-sm shadow-lg transition-all', isBiddingComplete ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400']">
                         {{ roundStartButtonText }}
                     </button>
+                </div>
+                
+                <div v-if="showStandbyModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
+                    <div class="bg-white rounded-[2rem] w-full max-w-sm p-6 shadow-2xl">
+                        <h3 class="text-lg font-black text-gray-800 text-center mb-4">이번 판 휴식 인원</h3>
+                        <div class="grid grid-cols-2 gap-3 mb-5">
+                            <button v-for="p in players" :key="p.name" @click="setStandby(p.name)"
+                                :class="['p-3 border-2 rounded-xl font-black text-sm', standbyPlayer === p.name ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200 bg-white']">{{ p.name }}</button>
+                            <button @click="setStandby(null)" class="col-span-2 p-3 border-2 rounded-xl font-black text-sm bg-gray-50 text-gray-400">전원 참여</button>
+                        </div>
+                        <button @click="showStandbyModal = false" class="w-full py-3.5 bg-gray-900 text-white font-black rounded-xl text-sm">닫기</button>
+                    </div>
                 </div>
             </section>
 
@@ -124,10 +149,10 @@
                 </div>
 
                 <div class="bg-blue-50 p-3 rounded-2xl border border-blue-100 shrink-0">
-                    <div class="flex justify-between items-center mb-2">
-                        <label class="text-[11px] font-black text-blue-600 uppercase ml-1">프렌드 선택</label>
+                    <div class="flex justify-between items-center mb-2 px-1">
+                        <label class="text-[11px] font-black text-blue-600 uppercase">프렌드 선택</label>
                         <button @click="formData.friend = '노프렌드'"
-                            :class="['text-[10px] px-3 py-1 rounded-lg font-black border transition-all', 
+                            :class="['text-[10px] px-3 py-1 rounded-lg font-black border transition-all shadow-sm', 
                             formData.friend === '노프렌드' ? 'bg-red-500 text-white border-red-600 shadow-inner' : 'bg-white text-gray-500 border-gray-300']">
                             노프렌드 🚫
                         </button>
@@ -137,8 +162,8 @@
                             :disabled="p.name === formData.dealer || standbyPlayer === p.name"
                             :class="[
                                 'p-2 rounded-lg border-2 flex flex-col items-center justify-center transition-all relative min-h-[60px]',
-                                standbyPlayer === p.name ? 'border-gray-200 bg-gray-100 opacity-40 cursor-not-allowed' :
-                                p.name === formData.dealer ? 'border-amber-300 bg-gray-100 opacity-60 cursor-not-allowed' :
+                                standbyPlayer === p.name ? 'border-gray-200 bg-gray-100 opacity-40' :
+                                p.name === formData.dealer ? 'border-amber-300 bg-gray-100 opacity-60' :
                                 formData.friend === p.name ? 'border-blue-600 bg-white text-blue-700 shadow-md ring-1' : 'border-gray-100 bg-white'
                             ]">
                             <span v-if="p.name === formData.dealer" class="absolute top-1 right-1 bg-amber-500 text-white text-[7px] font-black px-1 rounded shadow-sm">주공</span>
@@ -165,14 +190,14 @@
                     <div class="bg-white p-5 rounded-3xl border-2 border-gray-100 flex flex-col items-center shadow-sm">
                         <div class="flex justify-between w-full items-center mb-4 px-1">
                             <span class="text-[10px] font-black text-gray-400 uppercase">야당 획득 장수</span>
-                            <span :class="['px-3 py-0.5 rounded-full text-[10px] font-bold text-white', isCurrentBidSuccess ? 'bg-green-500' : 'bg-red-500']">{{ isCurrentBidSuccess ? '여당 승리' : '야당 승리' }}</span>
+                            <span :class="['px-3 py-0.5 rounded-full text-[10px] font-bold text-white shadow-sm', isCurrentBidSuccess ? 'bg-green-500' : 'bg-red-500']">{{ isCurrentBidSuccess ? '여당 승리' : '야당 승리' }}</span>
                         </div>
                         <div class="flex items-center justify-center gap-10 w-full mb-4">
                             <button @click="formData.oppScore = Math.max(0, formData.oppScore - 1)" class="w-12 h-12 rounded-full bg-gray-50 border-2 text-2xl font-black text-gray-300">-</button>
                             <span class="text-7xl font-black w-24 text-center text-gray-800 tracking-tighter">{{ formData.oppScore }}</span>
                             <button @click="formData.oppScore = Math.min(20, formData.oppScore + 1)" class="w-12 h-12 rounded-full bg-gray-50 border-2 text-2xl font-black text-gray-300">+</button>
                         </div>
-                        <input type="range" v-model.number="formData.oppScore" min="0" max="20" class="w-full accent-blue-600">
+                        <input type="range" v-model.number="formData.oppScore" min="0" max="20" class="w-full accent-blue-600 h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer">
                     </div>
                 </div>
 
@@ -190,7 +215,7 @@
                     <h2 :class="['text-3xl font-black mt-2', lastResult.isWin ? 'text-green-600' : 'text-red-600']">{{ lastResult.isWin ? '여당 승리 🎉' : '야당 승리 💀' }}</h2>
                     <p class="text-[11px] font-bold text-gray-500 mt-1">{{ formData.suit }} {{ formData.bid }} 비딩 <span class="mx-1">|</span> 야당 {{ formData.oppScore }}장</p>
                     <div class="mt-3 inline-flex items-center bg-white px-4 py-2 rounded-full shadow-sm border">
-                        <span class="text-[10px] font-black text-gray-300 mr-2">계산: {{ lastResult.base }} × {{ lastResult.multiplier }}</span>
+                        <span class="text-[10px] font-black text-gray-300 mr-2 uppercase">계산식: {{ lastResult.base }} × {{ lastResult.multiplier }}</span>
                         <span class="text-base font-black text-blue-600">{{ lastResult.finalUnit }} 점</span>
                     </div>
                 </div>
@@ -206,7 +231,7 @@
                         
                         <div class="flex items-center gap-5 text-right">
                             <div class="flex flex-col items-end">
-                                <span class="text-[8px] text-gray-300 font-bold uppercase">이전 / 변동</span>
+                                <span class="text-[8px] text-gray-300 font-bold uppercase tracking-tighter">이전/변동</span>
                                 <div class="text-[12px] font-bold text-gray-400">
                                     {{ change.oldTotal }} 
                                     <span :class="['ml-1', change.diff > 0 ? 'text-green-500' : change.diff < 0 ? 'text-red-500' : 'text-gray-300']">
@@ -215,14 +240,14 @@
                                 </div>
                             </div>
                             <div class="flex flex-col items-end min-w-[55px]">
-                                <span class="text-[8px] text-gray-400 font-bold uppercase">보유 점수</span>
+                                <span class="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">보유 점수</span>
                                 <span class="font-black text-2xl text-gray-800 tracking-tighter">{{ change.newTotal }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <button @click="nextRound" class="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all">다음 라운드 시작</button>
+                <button @click="nextRound" class="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all">다음 판 비딩하기</button>
             </section>
         </main>
     </div>
@@ -258,7 +283,7 @@
                     return missing.length === 0 ? "라운드 시작" : `라운드 시작 (${missing.join(', ')})`;
                 },
                 isBiddingComplete() { return this.formData.dealer && this.formData.suit && this.formData.bid && (this.players.length !== 6 || this.standbyPlayer); },
-                currentSuit() { return this.suits.find(s => s.name === this.formData.suit) || { symbol: '?', textColor: 'text-gray-200' }; },
+                currentSuit() { return this.suits.find(s => s.name === this.formData.suit) || { symbol: '?', textColor: 'text-gray-300' }; },
                 isCurrentBidSuccess() { return (20 - this.formData.oppScore) >= (this.formData.bid || 0); },
                 calculateMighty() { 
                     if (!this.formData.suit) return { text: '-', color: 'text-gray-300' };
@@ -298,7 +323,7 @@
                 saveSession() { localStorage.setItem('mightySession', JSON.stringify({ gameId: this.gameId, roundCount: this.roundCount, players: this.players, standbyPlayer: this.standbyPlayer })); },
                 loadSession() { const d = JSON.parse(localStorage.getItem('mightySession')); this.gameId=d.gameId; this.roundCount=d.roundCount; this.players=d.players; this.standbyPlayer=d.standbyPlayer; this.selectedPlayers=this.players.map(p=>p.name); this.step=3; },
                 endGame() { 
-                    if(confirm("기록을 완전히 초기화하시겠습니까? (휴식 및 주공 설정도 초기화됩니다)")) {
+                    if(confirm("기록을 완전히 초기화하시겠습니까?")) {
                         localStorage.removeItem('mightySession'); 
                         this.standbyPlayer = null;
                         this.formData = { dealer: '', friend: '', suit: null, bid: null, oppScore: 0 };
