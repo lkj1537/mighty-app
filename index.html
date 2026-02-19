@@ -12,10 +12,14 @@
         .menu-card { transition: all 0.2s; border: 1px solid #e5e7eb; }
         .menu-card:active { transform: scale(0.95); background-color: #f9fafb; }
         [v-cloak] { display: none; }
+        
+        /* 스크롤바 숨기기 (비딩 보드용) */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body>
-    <div id="app" v-cloak class="max-w-md mx-auto min-h-screen bg-white shadow-xl flex flex-col">
+    <div id="app" v-cloak class="max-w-4xl mx-auto min-h-screen bg-white shadow-xl flex flex-col">
         
         <header class="bg-gray-900 text-white py-5 px-4 text-center shadow-lg">
             <h1 class="text-xl font-black italic tracking-tighter">MIGHTY MASTER</h1>
@@ -75,11 +79,13 @@
 
             <section v-if="step === 3" class="space-y-6">
                 <button @click="step = 2" class="text-sm text-gray-400 font-bold">← 인원 다시 선택</button>
-                <h2 class="text-2xl font-black text-gray-800">비딩 설정</h2>
+                <div class="flex justify-between items-end">
+                    <h2 class="text-2xl font-black text-gray-800">비딩 설정</h2>
+                </div>
 
                 <div class="space-y-3">
                     <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">주공 (Dealer)</label>
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-5 gap-2">
                         <button v-for="name in selectedPlayers" @click="formData.dealer = name"
                             :class="['p-3 rounded-xl border-2 text-sm font-bold transition-all', formData.dealer === name ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400']">
                             {{ name }}
@@ -87,22 +93,35 @@
                     </div>
                 </div>
 
-                <div class="space-y-3">
-                    <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">기루 (Trump)</label>
-                    <div class="flex gap-1">
-                        <button v-for="s in suits" @click="formData.suit = s.name"
-                            :class="['flex-1 py-3 rounded-xl border-2 text-xs font-black transition-all', formData.suit === s.name ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400']">
-                            {{ s.name }}
-                        </button>
+                <div class="space-y-3 overflow-hidden">
+                    <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">비딩 보드 (Giru & Bid)</label>
+                    
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 overflow-x-auto hide-scrollbar">
+                        <div class="min-w-[700px] flex flex-col gap-3">
+                            <div v-for="s in suits" :key="s.name" class="flex items-center border-b border-gray-200 pb-3 last:border-0 last:pb-0">
+                                
+                                <div :class="['w-24 font-black text-lg text-center', s.textColor]">
+                                    {{ s.symbol }} {{ s.name }}
+                                </div>
+                                
+                                <div class="flex gap-2 ml-4">
+                                    <button v-for="num in bids" :key="num"
+                                        @click="formData.suit = s.name; formData.bid = num"
+                                        :class="['w-12 h-12 rounded-full border-[3px] font-black transition-all flex items-center justify-center', 
+                                            formData.suit === s.name && formData.bid === num 
+                                                ? 'bg-gray-800 text-white border-gray-800 scale-110 shadow-lg' 
+                                                : 'bg-white hover:bg-gray-100 ' + s.borderColor + ' ' + s.textColor]">
+                                        {{ num }}
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 space-y-4">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm font-black text-gray-500">비딩 수</span>
-                        <span class="text-2xl font-black text-blue-600">{{ formData.bid }}</span>
-                    </div>
-                    <input type="range" v-model.number="formData.bid" min="13" max="20" class="w-full accent-blue-600 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                <div class="text-center p-4 bg-blue-50 text-blue-800 rounded-xl font-bold">
+                    현재 선택: <span class="text-blue-600">{{ formData.suit }} {{ formData.bid }}</span>
                 </div>
 
                 <button @click="step = 4" :disabled="!formData.dealer"
@@ -131,7 +150,7 @@
 
                 <div class="space-y-4">
                     <div class="bg-gray-50 p-6 rounded-[2rem] border border-gray-100">
-                        <label class="block text-xs font-black text-gray-400 mb-4 text-center uppercase">Opponent Score</label>
+                        <label class="block text-xs font-black text-gray-400 mb-4 text-center uppercase">Opponent Score (야당 획득 장수)</label>
                         <input type="number" v-model.number="formData.oppScore" class="w-full bg-white border-2 border-gray-100 p-4 rounded-2xl text-4xl font-black text-center outline-none focus:border-blue-500" placeholder="0">
                     </div>
                 </div>
@@ -160,16 +179,27 @@
                     selectedPlayers: [],
                     newPlayerName: '',
                     loading: false,
-                    suits: [{name:'스페이드'}, {name:'하트'}, {name:'다이아'}, {name:'클로버'}, {name:'노기루'}],
+                    // 문양, 색상 데이터 정의
+                    suits: [
+                        { symbol: '♠', name: '스페이드', textColor: 'text-gray-900', borderColor: 'border-gray-900' },
+                        { symbol: '♦', name: '다이아', textColor: 'text-red-600', borderColor: 'border-red-600' },
+                        { symbol: '♥', name: '하트', textColor: 'text-red-600', borderColor: 'border-red-600' },
+                        { symbol: '♣', name: '클로버', textColor: 'text-gray-900', borderColor: 'border-gray-900' },
+                        { symbol: 'N', name: '노기루', textColor: 'text-gray-400', borderColor: 'border-gray-400' }
+                    ],
+                    // 11~20 배열 생성
+                    bids: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
                     formData: { dealer: '', friend: '노프렌드', suit: '스페이드', bid: 13, oppScore: 0, result: '성공' }
                 }
             },
             computed: {
                 calculateMighty() { return this.formData.suit === '스페이드' ? '♦ A' : '♠ A'; },
+                // 조커콜 로직 수정 (클로버 기루일 때만 스페이드3, 나머진 무조건 클로버3)
                 calculateJokerCall() {
-                    if (this.formData.suit === '노기루') return '없음';
-                    const icons = {'스페이드':'♠','하트':'♥','다이아':'♦','클로버':'♣'};
-                    return (icons[this.formData.suit] || '') + ' 3';
+                    if (this.formData.suit === '클로버') {
+                        return '♠ 3';
+                    }
+                    return '♣ 3';
                 },
                 isWin() { return this.formData.oppScore < (21 - this.formData.bid); }
             },
@@ -205,7 +235,7 @@
                             body: JSON.stringify(this.formData)
                         });
                         alert("✅ 기록 완료!");
-                        this.step = 3; // 다음 판 비딩 설정으로 이동
+                        this.step = 3; 
                         this.formData.oppScore = 0;
                     } catch (e) { alert("저장 실패"); } finally { this.loading = false; }
                 }
