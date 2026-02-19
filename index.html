@@ -94,21 +94,28 @@
                     <h2 class="text-lg font-black text-gray-800">Round {{ roundCount }} 비딩</h2>
                 </div>
 
-                <div v-if="players.length === 6" class="bg-gray-100 rounded-xl p-2 flex justify-between items-center shrink-0 border border-gray-200">
-                    <span class="text-xs font-bold text-gray-500 ml-2">이번 판 휴식 (광팔이)</span>
-                    <select v-model="standbyPlayer" class="bg-white border border-gray-300 text-sm font-black rounded-lg px-2 py-1 outline-none text-gray-700">
-                        <option v-for="p in players" :key="p.name" :value="p.name">{{ p.name }}</option>
-                    </select>
-                </div>
-
-                <div class="space-y-1.5 shrink-0 bg-blue-50 p-2 rounded-xl border border-blue-100">
-                    <label class="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-1">주공 (Dealer) 및 현재 칩</label>
-                    <div class="grid grid-cols-5 gap-1">
-                        <button v-for="p in activePlayers" :key="p.name" @click="formData.dealer = p.name"
-                            :class="['p-1.5 rounded-lg border-2 flex flex-col items-center justify-center transition-all', 
-                                    formData.dealer === p.name ? 'border-blue-600 bg-white text-blue-700 shadow-sm' : 'border-transparent text-gray-500 hover:bg-blue-100']">
-                            <span class="text-xs font-black break-keep">{{ p.name }}</span>
-                            <span :class="['text-[10px] font-bold mt-0.5', p.chips < 0 ? 'text-red-500' : 'text-gray-600']">🪙 {{ p.chips }}</span>
+                <div class="space-y-2 shrink-0 bg-blue-50 p-3 rounded-xl border border-blue-100">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-[12px] font-black text-blue-600 uppercase tracking-widest ml-1">주공 선택</label>
+                        <button v-if="players.length === 6" @click="showStandbyModal = true" class="text-[10px] bg-white border border-gray-300 text-gray-700 px-2 py-1.5 rounded-lg shadow-sm font-bold active:bg-gray-100 transition-colors">
+                            휴식 지정 ⚙️
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-2">
+                        <button v-for="p in players" :key="p.name" @click="selectDealer(p.name)"
+                            :disabled="standbyPlayer === p.name"
+                            :class="[
+                                'p-2 rounded-xl border-2 flex flex-col items-center justify-center transition-all relative overflow-hidden',
+                                standbyPlayer === p.name ? 'bg-gray-200 border-gray-300 opacity-60 grayscale cursor-not-allowed' :
+                                formData.dealer === p.name ? 'border-blue-600 bg-white text-blue-700 shadow-md ring-2 ring-blue-100' : 'border-gray-200 bg-white text-gray-700 shadow-sm hover:border-blue-300 cursor-pointer'
+                            ]">
+                            <span class="text-xs font-black">{{ p.name }}</span>
+                            <span :class="['text-base font-black mt-0.5', p.chips < 0 ? 'text-red-500' : 'text-gray-900']">{{ p.chips }}</span>
+                            
+                            <div v-if="standbyPlayer === p.name" class="absolute inset-0 flex items-center justify-center bg-black/5">
+                                <span class="text-[11px] font-black text-gray-500 bg-white/90 px-1.5 py-0.5 rounded rotate-[-15deg] border border-gray-400 shadow-sm">휴식</span>
+                            </div>
                         </button>
                     </div>
                 </div>
@@ -138,12 +145,22 @@
                     </div>
                 </div>
 
-                <div class="text-center p-2 bg-gray-800 text-white rounded-xl font-bold text-sm shrink-0 flex justify-between px-4 items-center shadow-lg">
-                    <span class="text-gray-300 text-xs">현재 선택</span>
-                    <span v-if="formData.suit && formData.bid" class="text-lg">
-                        {{ formData.suit }} {{ formData.bid }}
-                    </span>
-                    <span v-else class="text-gray-400 text-xs font-normal">미선택</span>
+                <div class="p-3 bg-white border border-gray-200 rounded-xl shadow-sm shrink-0">
+                    <div class="flex justify-between items-center mb-1 pb-1 border-b border-gray-100">
+                        <span class="text-xs font-black text-gray-500">현재 비딩</span>
+                        <span v-if="formData.suit && formData.bid" class="text-lg font-black text-blue-600">
+                            {{ formData.suit }} {{ formData.bid }}
+                        </span>
+                        <span v-else class="text-xs text-gray-400">선택 대기</span>
+                    </div>
+                    <div class="flex justify-between items-center px-1">
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Mighty 
+                            <span :class="['text-xs ml-1 font-black', calculateMighty.color]">{{ calculateMighty.text }}</span>
+                        </p>
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Joker Call 
+                            <span :class="['text-xs ml-1 font-black', calculateJokerCall.color]">{{ calculateJokerCall.text }}</span>
+                        </p>
+                    </div>
                 </div>
 
                 <div class="shrink-0 pt-1">
@@ -151,6 +168,23 @@
                         class="w-full py-4 bg-blue-600 text-white rounded-[1.5rem] font-black text-base shadow-lg disabled:bg-gray-200 disabled:text-gray-400 transition-colors">
                         라운드 시작
                     </button>
+                </div>
+                
+                <div v-if="showStandbyModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
+                    <div class="bg-white rounded-[2rem] w-full max-w-sm p-6 space-y-5 shadow-2xl">
+                        <h3 class="text-xl font-black text-gray-800 text-center">휴식 멤버 지정</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button v-for="p in players" :key="p.name" @click="setStandby(p.name)"
+                                :class="['p-4 border-2 rounded-xl font-black text-sm transition-all', standbyPlayer === p.name ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-inner' : 'border-gray-200 text-gray-700 bg-white hover:border-gray-300']">
+                                {{ p.name }}
+                            </button>
+                            <button @click="setStandby(null)"
+                                :class="['col-span-2 p-4 border-2 rounded-xl font-black text-sm transition-all', standbyPlayer === null ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-inner' : 'border-gray-200 text-gray-500 bg-gray-50']">
+                                미선택 (전원 참여)
+                            </button>
+                        </div>
+                        <button @click="showStandbyModal = false" class="w-full py-4 bg-gray-900 text-white font-black text-base rounded-2xl active:scale-95 transition-transform">닫기</button>
+                    </div>
                 </div>
             </section>
 
@@ -252,10 +286,11 @@
             data() {
                 return {
                     step: 1,
-                    playerList: [], // DB에서 받아옵니다.
+                    playerList: [], 
                     selectedPlayers: [],
                     players: [],
-                    standbyPlayer: null,
+                    standbyPlayer: null, // 초기 미선택 상태 유지
+                    showStandbyModal: false, // 모달 상태 관리
                     newPlayerName: '',
                     loading: false,
                     isAddingPlayer: false,
@@ -283,12 +318,12 @@
                     return [...others, '노프렌드'];
                 },
                 calculateMighty() { 
-                    if (!this.formData.suit) return { text: '-', color: 'text-gray-400' };
+                    if (!this.formData.suit) return { text: '-', color: 'text-gray-300' };
                     if (this.formData.suit === '스페이드') return { text: '♦ A', color: 'text-red-600' };
                     return { text: '♠ A', color: 'text-gray-900' };
                 },
                 calculateJokerCall() {
-                    if (!this.formData.suit) return { text: '-', color: 'text-gray-400' };
+                    if (!this.formData.suit) return { text: '-', color: 'text-gray-300' };
                     if (this.formData.suit === '클로버') return { text: '♠ 3', color: 'text-gray-900' };
                     return { text: '♣ 3', color: 'text-gray-900' }; 
                 }
@@ -299,7 +334,6 @@
                     if (idx > -1) this.selectedPlayers.splice(idx, 1);
                     else if (this.selectedPlayers.length < 6) this.selectedPlayers.push(name);
                 },
-                // 1. 진짜 DB 연동으로 복구
                 async fetchPlayers() {
                     try {
                         const res = await fetch(CONFIG.GAS_URL);
@@ -307,10 +341,8 @@
                         this.playerList = data.players || [];
                     } catch (e) { 
                         console.error("데이터 로딩 실패", e); 
-                        alert("플레이어 목록을 불러오지 못했습니다. 앱스 스크립트 배포 URL을 확인해주세요.");
                     }
                 },
-                // 2. 신규 등록 시 DB에 전송
                 async addPlayer() {
                     if(!this.newPlayerName) return;
                     this.isAddingPlayer = true;
@@ -330,17 +362,38 @@
                     }
                 },
                 
+                // 주공 선택 클릭 로직 (휴식 멤버는 불가)
+                selectDealer(name) {
+                    if(this.standbyPlayer === name) return;
+                    this.formData.dealer = name;
+                },
+
+                // 휴식 지정 로직 (모달)
+                setStandby(name) {
+                    this.standbyPlayer = name;
+                    // 만약 주공이 휴식 멤버로 지정되었다면 주공 초기화
+                    if(this.formData.dealer === name) {
+                        this.formData.dealer = '';
+                    }
+                    this.showStandbyModal = false;
+                    this.saveSession();
+                },
+                
                 async startGame() {
                     this.loading = true;
-                    const today = new Date().toISOString().slice(2,10).replace(/-/g, '');
+                    
+                    // Game ID 강화: 날짜_시분초_랜덤4자리
+                    const today = new Date();
+                    const yymmdd = today.toISOString().slice(2,10).replace(/-/g, '');
+                    const hhmmss = String(today.getHours()).padStart(2, '0') + String(today.getMinutes()).padStart(2, '0') + String(today.getSeconds()).padStart(2, '0');
                     const randomStr = Math.random().toString(36).substr(2, 4).toUpperCase();
-                    this.gameId = `MIGHTY_${today}_${randomStr}`;
+                    this.gameId = `MIGHTY_${yymmdd}_${hhmmss}_${randomStr}`;
+                    
                     this.roundCount = 1;
-
                     this.players = this.selectedPlayers.map(name => ({ name, chips: 40 }));
                     
-                    if (this.players.length === 6) this.standbyPlayer = this.players[5].name; 
-                    else this.standbyPlayer = null;
+                    // 처음 들어오면 무조건 전원 활성화 (휴식 없음)
+                    this.standbyPlayer = null; 
 
                     try {
                         const payload = { action: "startGame", gameId: this.gameId, players: this.players };
@@ -470,7 +523,8 @@
                 },
 
                 nextRound() {
-                    if (this.players.length === 6) {
+                    // 다음 판 오토 로테이션 적용
+                    if (this.players.length === 6 && this.standbyPlayer !== null) {
                         if (this.lastResult.isWin) {
                             if (this.formData.friend !== '노프렌드') this.standbyPlayer = this.formData.friend;
                         } else {
