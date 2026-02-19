@@ -2,100 +2,116 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mighty Master</title>
     <script src="config.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
-        .btn-suit { transition: all 0.2s; }
-        .active-suit { transform: scale(1.05); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .input-focus:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        [v-cloak] { display: none; }
     </style>
 </head>
 <body>
-    <div id="app" class="max-w-md mx-auto min-h-screen bg-white shadow-xl flex flex-col">
-        <header class="bg-gray-800 text-white py-5 px-4 text-center">
-            <h1 class="text-xl font-bold tracking-widest">🃏 MIGHTY ASSISTANT</h1>
-            <p class="text-xs text-gray-400 mt-1">Real-time Game Tracker</p>
+    <div id="app" v-cloak class="max-w-md mx-auto min-h-screen bg-white shadow-xl flex flex-col font-sans">
+        <header class="bg-gray-900 text-white py-6 px-4 text-center shadow-md">
+            <h1 class="text-xl font-black tracking-tighter italic">🃏 MIGHTY MASTER</h1>
+            <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">Assistant & Tracker</p>
         </header>
 
-        <main class="flex-grow p-4 space-y-6">
-            <section>
-                <h2 class="text-sm font-bold text-gray-500 mb-2">1. 플레이어 설정</h2>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="flex flex-col">
-                        <span class="text-[10px] mb-1 ml-1 text-gray-400">주공 (Dealer)</span>
-                        <input v-model="formData.dealer" class="border-2 border-gray-100 p-3 rounded-lg focus:border-blue-500 outline-none" placeholder="이름 입력">
+        <main class="flex-grow p-5 space-y-8">
+            <section class="space-y-4">
+                <div class="flex justify-between items-end">
+                    <h2 class="text-sm font-black text-gray-400 uppercase">1. Players</h2>
+                    <span class="text-[10px] text-blue-500 font-bold">인원 관리 가능</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold text-gray-500 ml-1">주공 (Dealer)</label>
+                        <select v-model="formData.dealer" class="w-full border-2 border-gray-100 p-3 rounded-xl bg-gray-50 text-sm font-bold input-focus">
+                            <option value="">선택하세요</option>
+                            <option v-for="name in playerList" :key="name" :value="name">{{ name }}</option>
+                        </select>
                     </div>
-                    <div class="flex flex-col">
-                        <span class="text-[10px] mb-1 ml-1 text-gray-400">프렌드 (Friend)</span>
-                        <input v-model="formData.friend" class="border-2 border-gray-100 p-3 rounded-lg focus:border-blue-500 outline-none" placeholder="없으면 공백">
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold text-gray-500 ml-1">프렌드 (Friend)</label>
+                        <select v-model="formData.friend" class="w-full border-2 border-gray-100 p-3 rounded-xl bg-gray-50 text-sm font-bold input-focus">
+                            <option value="노프렌드">노프렌드</option>
+                            <option v-for="name in playerList" :key="name" :value="name">{{ name }}</option>
+                        </select>
                     </div>
+                </div>
+
+                <div class="flex gap-2 p-2 bg-gray-50 rounded-2xl border border-gray-100">
+                    <input v-model="newPlayerName" @keyup.enter="addPlayer" class="flex-grow bg-transparent px-3 py-2 text-sm outline-none" placeholder="새 멤버 이름 입력...">
+                    <button @click="addPlayer" class="bg-white px-4 py-2 rounded-xl text-xs font-black shadow-sm active:scale-95 transition-transform border border-gray-200">등록</button>
                 </div>
             </section>
 
-            <section>
-                <h2 class="text-sm font-bold text-gray-500 mb-2">2. 기루(Trump) 선택</h2>
+            <section class="space-y-3">
+                <h2 class="text-sm font-black text-gray-400 uppercase">2. Trump Suit</h2>
                 <div class="flex justify-between gap-1">
-                    <button v-for="s in suits" :key="s.name" 
-                        @click="formData.suit = s.name"
-                        :class="['btn-suit flex-1 py-3 rounded-lg text-sm font-bold border', 
-                                formData.suit === s.name ? 'bg-blue-600 text-white border-blue-600 active-suit' : 'bg-white text-gray-600 border-gray-200']">
+                    <button v-for="s in suits" :key="s.name" @click="formData.suit = s.name"
+                        :class="['flex-1 py-3 rounded-xl text-xs font-black border transition-all', 
+                                formData.suit === s.name ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200 -translate-y-1' : 'bg-white text-gray-400 border-gray-100']">
                         {{ s.name }}
                     </button>
                 </div>
             </section>
 
-            <section class="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-2xl border border-blue-100 shadow-inner">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-blue-800 font-bold text-sm">💡 실시간 가이드</span>
-                    <span class="bg-blue-200 text-blue-800 text-[10px] px-2 py-1 rounded-full font-bold">LIVE</span>
+            <section class="bg-gray-900 p-6 rounded-[2rem] shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10">
+                    <span class="text-4xl text-white font-black italic">GUIDE</span>
                 </div>
-                <div class="grid grid-cols-3 gap-2">
-                    <div class="bg-white p-3 rounded-xl shadow-sm">
-                        <p class="text-[10px] text-gray-400 mb-1">마이티</p>
-                        <p class="text-base font-black text-red-600">{{ calculateMighty }}</p>
+                <div class="grid grid-cols-3 gap-4 relative z-10 text-center">
+                    <div class="space-y-1">
+                        <p class="text-[9px] text-blue-400 font-bold uppercase tracking-tighter">Mighty</p>
+                        <p class="text-lg font-black text-white">{{ calculateMighty }}</p>
                     </div>
-                    <div class="bg-white p-3 rounded-xl shadow-sm">
-                        <p class="text-[10px] text-gray-400 mb-1">조커콜</p>
-                        <p class="text-base font-black text-gray-800">{{ calculateJokerCall }}</p>
+                    <div class="space-y-1 border-x border-gray-800">
+                        <p class="text-[9px] text-blue-400 font-bold uppercase tracking-tighter">Joker Call</p>
+                        <p class="text-lg font-black text-white">{{ calculateJokerCall }}</p>
                     </div>
-                    <div class="bg-white p-3 rounded-xl shadow-sm">
-                        <p class="text-[10px] text-gray-400 mb-1">야당 목표</p>
-                        <p class="text-base font-black text-blue-700">{{ 21 - formData.bid }}장</p>
+                    <div class="space-y-1">
+                        <p class="text-[9px] text-blue-400 font-bold uppercase tracking-tighter">Opp. Target</p>
+                        <p class="text-lg font-black text-white">{{ 21 - formData.bid }}장</p>
                     </div>
                 </div>
             </section>
 
-            <section class="space-y-4">
-                <h2 class="text-sm font-bold text-gray-500">3. 게임 결과</h2>
-                <div class="bg-gray-50 p-4 rounded-xl">
-                    <div class="mb-4">
-                        <div class="flex justify-between mb-2">
-                            <label class="text-xs font-bold">비딩 (Bidding): <span class="text-blue-600 text-lg">{{ formData.bid }}</span></label>
+            <section class="space-y-4 pt-2">
+                <h2 class="text-sm font-black text-gray-400 uppercase">3. Game Result</h2>
+                <div class="bg-gray-50 p-5 rounded-[2rem] border border-gray-100 space-y-6">
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-xs font-black">비딩 (Bidding)</span>
+                            <span class="text-2xl font-black text-blue-600">{{ formData.bid }}</span>
                         </div>
                         <input type="range" v-model.number="formData.bid" min="13" max="20" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
                     </div>
                     <div>
-                        <label class="text-xs font-bold block mb-2">야당이 먹은 점수판 수</label>
-                        <input type="number" v-model.number="formData.oppScore" class="w-full border-2 border-gray-200 p-3 rounded-lg focus:border-blue-500 outline-none" placeholder="0~20 입력">
+                        <label class="text-xs font-black block mb-2">야당 획득 점수</label>
+                        <input type="number" v-model.number="formData.oppScore" class="w-full bg-white border-2 border-gray-100 p-4 rounded-2xl text-lg font-bold input-focus" placeholder="0">
                     </div>
                 </div>
 
-                <div :class="['p-4 rounded-xl text-center font-black transition-colors', 
-                             isWin ? 'bg-green-100 text-green-700 border-2 border-green-200' : 'bg-red-100 text-red-700 border-2 border-red-200']">
+                <div :class="['py-5 rounded-[2rem] text-center font-black text-sm border-4 transition-all duration-500', 
+                             isWin ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100']">
                     {{ isWin ? '🏆 여당 승리 (성공)' : '💀 야당 승리 (파액)' }}
                 </div>
             </section>
         </main>
 
-        <footer class="p-4 bg-white border-t">
+        <footer class="p-5 bg-white border-t border-gray-50 sticky bottom-0">
             <button @click="sendData" :disabled="loading || !formData.dealer" 
-                class="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-transform disabled:bg-gray-300">
-                {{ loading ? '데이터 전송 중...' : '데이터 저장 및 종료' }}
+                class="w-full py-5 bg-gray-900 text-white rounded-[2rem] font-black text-lg shadow-xl active:scale-95 transition-transform disabled:bg-gray-200 disabled:text-gray-400">
+                {{ loading ? '데이터 전송 중...' : '기록 완료 및 저장' }}
             </button>
-            <p v-if="statusMsg" class="text-center mt-3 text-sm font-bold text-blue-600">{{ statusMsg }}</p>
+            <transition name="fade">
+                <p v-if="statusMsg" class="text-center mt-4 text-xs font-bold text-blue-600">{{ statusMsg }}</p>
+            </transition>
         </footer>
     </div>
 
@@ -104,12 +120,14 @@
         createApp({
             data() {
                 return {
+                    playerList: [],
+                    newPlayerName: '',
                     loading: false,
                     statusMsg: '',
                     suits: [{name:'스페이드'}, {name:'하트'}, {name:'다이아'}, {name:'클로버'}, {name:'노기루'}],
                     formData: {
                         dealer: '',
-                        friend: '',
+                        friend: '노프렌드',
                         suit: '스페이드',
                         bid: 13,
                         oppScore: 0,
@@ -119,9 +137,7 @@
             },
             computed: {
                 calculateMighty() {
-                    // 기루가 스페이드면 다이아A, 아니면 스페이드A
-                    if (this.formData.suit === '스페이드') return '♦ A';
-                    return '♠ A';
+                    return this.formData.suit === '스페이드' ? '♦ A' : '♠ A';
                 },
                 calculateJokerCall() {
                     if (this.formData.suit === '노기루') return '없음';
@@ -129,30 +145,50 @@
                     return (icons[this.formData.suit] || '') + ' 3';
                 },
                 isWin() {
-                    // 야당이 (21 - 비딩수) 미만으로 먹어야 여당 성공
                     const target = 21 - this.formData.bid;
                     return this.formData.oppScore < target;
                 }
             },
             methods: {
+                async fetchPlayers() {
+                    try {
+                        const res = await fetch(CONFIG.GAS_URL);
+                        const data = await res.json();
+                        this.playerList = data.players || [];
+                    } catch (e) {
+                        this.statusMsg = "멤버 로딩 실패";
+                    }
+                },
+                async addPlayer() {
+                    if(!this.newPlayerName) return;
+                    this.statusMsg = "멤버 등록 중...";
+                    try {
+                        await fetch(CONFIG.GAS_URL, {
+                            method: "POST",
+                            mode: "no-cors",
+                            body: JSON.stringify({ action: "addPlayer", name: this.newPlayerName })
+                        });
+                        this.playerList.push(this.newPlayerName);
+                        this.newPlayerName = '';
+                        this.statusMsg = "등록 요청 완료!";
+                        setTimeout(() => { this.statusMsg = ''; }, 2000);
+                    } catch (e) {
+                        this.statusMsg = "등록 실패";
+                    }
+                },
                 async sendData() {
-                    if (!this.formData.dealer) return alert("주공 이름을 입력해주세요!");
-                    
                     this.loading = true;
-                    this.statusMsg = "기록 중입니다...";
+                    this.statusMsg = "저장 중입니다...";
                     this.formData.result = this.isWin ? '성공' : '실패';
                     
                     try {
-                        // config.js에 정의된 CONFIG.GAS_URL 사용
                         await fetch(CONFIG.GAS_URL, {
                             method: "POST",
                             mode: "no-cors",
                             headers: { "Content-Type": "text/plain" },
                             body: JSON.stringify(this.formData)
                         });
-                        
-                        this.statusMsg = "✅ 저장 완료! (시트를 확인하세요)";
-                        // 성공 시 입력값 일부 초기화
+                        this.statusMsg = "✅ 기록 성공! 시트를 확인하세요.";
                         this.formData.oppScore = 0;
                         setTimeout(() => { this.statusMsg = ''; }, 3000);
                     } catch (e) {
@@ -161,6 +197,9 @@
                         this.loading = false;
                     }
                 }
+            },
+            mounted() {
+                this.fetchPlayers();
             }
         }).mount('#app')
     </script>
