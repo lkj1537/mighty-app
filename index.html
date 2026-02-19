@@ -13,7 +13,7 @@
         .menu-card:active { transform: scale(0.95); background-color: #f9fafb; }
         [v-cloak] { display: none; }
         
-        /* 스크롤바 숨기기 (비딩 보드용) */
+        /* 스크롤바 숨기기 */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -87,7 +87,7 @@
                     <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">주공 (Dealer)</label>
                     <div class="grid grid-cols-5 gap-2">
                         <button v-for="name in selectedPlayers" @click="formData.dealer = name"
-                            :class="['p-3 rounded-xl border-2 text-sm font-bold transition-all', formData.dealer === name ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400']">
+                            :class="['p-3 rounded-xl border-2 text-sm font-bold transition-all break-keep', formData.dealer === name ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-400']">
                             {{ name }}
                         </button>
                     </div>
@@ -131,15 +131,15 @@
             </section>
 
             <section v-if="step === 4" class="space-y-6">
-                <div class="bg-gray-900 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden text-center">
+                <div class="bg-gray-900 p-8 rounded-[2.5rem] shadow-2xl relative text-center">
                     <div class="grid grid-cols-2 gap-4 relative z-10">
-                        <div class="space-y-1">
-                            <p class="text-[10px] text-blue-400 font-bold uppercase tracking-tighter">Mighty</p>
-                            <p class="text-3xl font-black text-white">{{ calculateMighty }}</p>
+                        <div class="bg-white py-4 rounded-2xl shadow-inner flex flex-col items-center justify-center">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-tighter mb-1">Mighty</p>
+                            <p :class="['text-4xl font-black', calculateMighty.color]">{{ calculateMighty.text }}</p>
                         </div>
-                        <div class="space-y-1">
-                            <p class="text-[10px] text-blue-400 font-bold uppercase tracking-tighter">Joker Call</p>
-                            <p class="text-3xl font-black text-white">{{ calculateJokerCall }}</p>
+                        <div class="bg-white py-4 rounded-2xl shadow-inner flex flex-col items-center justify-center">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-tighter mb-1">Joker Call</p>
+                            <p :class="['text-4xl font-black', calculateJokerCall.color]">{{ calculateJokerCall.text }}</p>
                         </div>
                     </div>
                     <div class="mt-6 pt-6 border-t border-gray-800 text-gray-400">
@@ -148,10 +148,29 @@
                     </div>
                 </div>
 
-                <div class="space-y-4">
-                    <div class="bg-gray-50 p-6 rounded-[2rem] border border-gray-100">
-                        <label class="block text-xs font-black text-gray-400 mb-4 text-center uppercase">Opponent Score (야당 획득 장수)</label>
-                        <input type="number" v-model.number="formData.oppScore" class="w-full bg-white border-2 border-gray-100 p-4 rounded-2xl text-4xl font-black text-center outline-none focus:border-blue-500" placeholder="0">
+                <div class="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex flex-col items-center">
+                    <label class="block text-xs font-black text-gray-400 mb-6 text-center uppercase tracking-wider">Opponent Score (야당 획득 장수)</label>
+                    
+                    <div class="flex items-center justify-center gap-8 w-full mb-6">
+                        <button @click="formData.oppScore = Math.max(0, formData.oppScore - 1)" 
+                                class="w-14 h-14 rounded-full bg-white shadow-sm border-2 border-gray-200 text-3xl font-black text-gray-600 active:bg-gray-100 active:scale-95 transition-all flex items-center justify-center pb-1">
+                            -
+                        </button>
+                        
+                        <span class="text-6xl font-black w-20 text-center text-gray-800">{{ formData.oppScore }}</span>
+                        
+                        <button @click="formData.oppScore = Math.min(20, formData.oppScore + 1)" 
+                                class="w-14 h-14 rounded-full bg-white shadow-sm border-2 border-gray-200 text-3xl font-black text-gray-600 active:bg-gray-100 active:scale-95 transition-all flex items-center justify-center pb-1">
+                            +
+                        </button>
+                    </div>
+
+                    <div class="w-full px-2">
+                        <input type="range" v-model.number="formData.oppScore" min="0" max="20" 
+                               class="w-full accent-blue-600 h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between w-full text-xs font-bold text-gray-400 mt-3 px-1">
+                            <span>0</span><span>5</span><span>10</span><span>15</span><span>20</span>
+                        </div>
                     </div>
                 </div>
 
@@ -179,27 +198,32 @@
                     selectedPlayers: [],
                     newPlayerName: '',
                     loading: false,
-                    // 문양, 색상 데이터 정의
+                    // 1. 노기루, 스페이드, 다이아, 클로버, 하트 순서로 정렬
                     suits: [
+                        { symbol: 'N', name: '노기루', textColor: 'text-gray-400', borderColor: 'border-gray-400' },
                         { symbol: '♠', name: '스페이드', textColor: 'text-gray-900', borderColor: 'border-gray-900' },
                         { symbol: '♦', name: '다이아', textColor: 'text-red-600', borderColor: 'border-red-600' },
-                        { symbol: '♥', name: '하트', textColor: 'text-red-600', borderColor: 'border-red-600' },
                         { symbol: '♣', name: '클로버', textColor: 'text-gray-900', borderColor: 'border-gray-900' },
-                        { symbol: 'N', name: '노기루', textColor: 'text-gray-400', borderColor: 'border-gray-400' }
+                        { symbol: '♥', name: '하트', textColor: 'text-red-600', borderColor: 'border-red-600' }
                     ],
-                    // 11~20 배열 생성
                     bids: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
                     formData: { dealer: '', friend: '노프렌드', suit: '스페이드', bid: 13, oppScore: 0, result: '성공' }
                 }
             },
             computed: {
-                calculateMighty() { return this.formData.suit === '스페이드' ? '♦ A' : '♠ A'; },
-                // 조커콜 로직 수정 (클로버 기루일 때만 스페이드3, 나머진 무조건 클로버3)
+                // 2. 마이티 색상 객체 반환 로직 추가
+                calculateMighty() { 
+                    if (this.formData.suit === '스페이드') {
+                        return { text: '♦ A', color: 'text-red-600' };
+                    }
+                    return { text: '♠ A', color: 'text-gray-900' };
+                },
+                // 2. 조커콜 색상 객체 반환 로직 추가
                 calculateJokerCall() {
                     if (this.formData.suit === '클로버') {
-                        return '♠ 3';
+                        return { text: '♠ 3', color: 'text-gray-900' };
                     }
-                    return '♣ 3';
+                    return { text: '♣ 3', color: 'text-gray-900' }; 
                 },
                 isWin() { return this.formData.oppScore < (21 - this.formData.bid); }
             },
