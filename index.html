@@ -8,7 +8,6 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 기본 스크롤바 방지 및 모바일 최적화 */
         body { background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; font-family: 'Pretendard', sans-serif; overflow-y: hidden; }
         .menu-card { transition: all 0.2s; border: 1px solid #e5e7eb; }
         .menu-card:active { transform: scale(0.95); background-color: #f9fafb; }
@@ -95,18 +94,18 @@
                     </div>
                 </div>
 
-                <div class="space-y-1.5 flex-grow flex flex-col overflow-hidden min-h-[220px]">
+                <div class="space-y-1.5 flex-grow flex flex-col overflow-hidden min-h-[240px]">
                     <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">비딩 보드 (Giru & Bid)</label>
                     
-                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-200 overflow-x-auto hide-scrollbar flex-grow">
-                        <div class="min-w-[620px] flex flex-col justify-between h-full">
+                    <div class="bg-gray-50 p-2 rounded-2xl border border-gray-200 overflow-x-auto hide-scrollbar flex-grow relative">
+                        <div class="min-w-max flex flex-col gap-3 py-2">
                             <div v-for="s in suits" :key="s.name" class="flex items-center">
                                 
-                                <div :class="['w-16 font-black text-sm text-center shrink-0', s.textColor]">
-                                    {{ s.symbol }} {{ s.name }}
+                                <div :class="['sticky left-0 bg-gray-50 w-12 h-10 flex items-center justify-center font-black text-[28px] shrink-0 z-30 shadow-[4px_0_8px_-6px_rgba(0,0,0,0.2)]', s.textColor]">
+                                    {{ s.symbol }}
                                 </div>
                                 
-                                <div class="flex gap-3 ml-2 relative">
+                                <div class="flex gap-3 ml-2 pr-10 relative z-0">
                                     <button v-for="num in bids" :key="num"
                                         @click="formData.suit = s.name; formData.bid = num"
                                         :class="[
@@ -114,7 +113,7 @@
                                             formData.suit === s.name && formData.bid === num 
                                                 ? 'bg-gray-800 text-white border-gray-800 scale-110 shadow-md z-20' 
                                                 : 'bg-white hover:bg-gray-100 ' + s.borderColor + ' ' + s.textColor,
-                                            s.name === '노기루' && num !== 20 ? 'translate-x-[26px] z-10' : 'z-0'
+                                            (s.name === '노기루' || num === 20) ? 'translate-x-[26px]' : ''
                                         ]">
                                         {{ num }}
                                     </button>
@@ -217,7 +216,6 @@
                         { symbol: '♥', name: '하트', textColor: 'text-red-600', borderColor: 'border-red-600' }
                     ],
                     bids: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
-                    // 2. 초기 상태 텅 비우기 (아무것도 선택 안 됨)
                     formData: { dealer: '', friend: '노프렌드', suit: null, bid: null, oppScore: 0, result: '' }
                 }
             },
@@ -270,12 +268,11 @@
                         });
                         alert("✅ 기록 완료!");
                         
-                        // 결과 저장 후 다음 판을 위해 초기화하고 비딩 화면으로 넘김
                         this.step = 3; 
                         this.formData.oppScore = 0;
                         this.formData.suit = null;
                         this.formData.bid = null;
-                        this.formData.dealer = ''; // 주공도 다시 고르도록 비움
+                        this.formData.dealer = ''; 
                         
                     } catch (e) { alert("저장 실패"); } finally { this.loading = false; }
                 }
