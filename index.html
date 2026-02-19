@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마이티 저장소 테스트</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app" style="padding: 20px; font-family: sans-serif;">
+        <h1>마이티 데이터 입력 테스트</h1>
+        
+        <label>주공 이름: </label>
+        <input v-model="formData.dealer" type="text" placeholder="예: 홍길동"><br><br>
+        
+        <label>비딩 숫자: </label>
+        <input v-model="formData.bid" type="number" placeholder="13"><br><br>
+
+        <button @click="sendData" :disabled="loading">
+            {{ loading ? '전송 중...' : '구글 시트로 보내기' }}
+        </button>
+
+        <p v-if="message">{{ message }}</p>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        createApp({
+            data() {
+                return {
+                    loading: false,
+                    message: '',
+                    // 1단계에서 적었던 항목들과 이름을 맞춰줍니다.
+                    formData: {
+                        dealer: '',
+                        friend: '없음',
+                        suit: '스페이드',
+                        bid: 13,
+                        oppScore: 0,
+                        result: '성공'
+                    }
+                }
+            },
+            methods: {
+                async sendData() {
+                    this.loading = true;
+                    // ★★★ 아래 주소에 아까 복사한 본인의 구글 웹 앱 URL을 넣으세요! ★★★
+                    const GAS_URL = "https://script.google.com/macros/s/AKfycbxZjpClZ-lKEySq3C3LGspsOO1XxW_cydbAJELvCU0epEQkBo47y8RE_aA_1yRtl6c/exec";
+
+                    try {
+                        const response = await fetch(GAS_URL, {
+                            method: "POST",
+                            body: JSON.stringify(this.formData)
+                        });
+                        this.message = "저장 성공! 구글 시트를 확인해보세요.";
+                    } catch (error) {
+                        this.message = "에러 발생: " + error.message;
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
