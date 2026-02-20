@@ -326,7 +326,7 @@
                         return { name: p.name, role, diff, oldTotal, newTotal: p.chips };
                     });
                     this.lastResult = { isWin, base, multiplier, finalUnit, changes };
-                    fetch(CONFIG.GAS_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "recordRound", gameId: this.gameId, round: this.roundCount, dealer, friend, suit, bid, oppScore, result: isWin ? "승리" : "파액", changesLog: changes.map(c=>`${c.name}:${c.diff}`).join(','), players: this.players }) });
+                    fetch(CONFIG.GAS_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "recordRound", gameId: this.gameId, round: this.roundCount, dealer, friend, suit, bid, oppScore, result: isWin ? "승리" : "실패", changesLog: changes.map(c=>`${c.name}:${c.diff}`).join(','), players: this.players }) });
                     this.saveSession(); this.loading = false; this.step = 5;
                 },
                 revertResult() {
